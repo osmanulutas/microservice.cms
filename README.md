@@ -133,30 +133,6 @@ Her mikroservis için detaylı API dokümantasyonu:
 - **Account Service**: http://localhost:5000/swagger
 - **Content Service**: http://localhost:5001/swagger
 
-## 🧪 Test
-
-### Unit Testleri Çalıştırma
-
-```bash
-# Tüm testleri çalıştır
-dotnet test
-
-# Belirli proje testlerini çalıştır
-dotnet test src/Account/Microservice.Account.Test/
-dotnet test src/Content/Microservice.Content.Tests/
-
-# PowerShell script ile test çalıştırma
-./run-tests.ps1
-```
-
-### Test Kapsamı
-
-- **Domain Tests**: Entity'ler, value object'ler, domain servisleri
-- **Application Tests**: Command/Query handler'lar, validasyonlar
-- **Integration Tests**: Repository pattern, unit of work
-
-## 🔧 Geliştirme
-
 ### Gereksinimler
 
 - .NET 9.0 SDK
