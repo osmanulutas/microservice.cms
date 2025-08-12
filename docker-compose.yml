@@ -1,0 +1,75 @@
+version: '3.9'
+
+networks:
+  cms-net:
+    driver: bridge
+
+services:
+  account-db:
+    image: postgres:16
+    container_name: account-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: accountdb
+    ports:
+      - '5433:5432'
+    volumes:
+      - account_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d accountdb']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [cms-net]
+
+  content-db:
+    image: postgres:16
+    container_name: content-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: contentdb
+    ports:
+      - '5434:5432'
+    volumes:
+      - content_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d contentdb']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [cms-net]
+
+  account-api:
+    build:
+      context: ./src/Account
+      dockerfile: Microservice.Account.API/Dockerfile
+    container_name: account-api
+    ports:
+      - '5000:5000'
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      account-db:
+        condition: service_healthy
+    networks: [cms-net]
+
+  content-api:
+    build:
+      context: ./src/Content
+      dockerfile: Microservice.Content.API/Dockerfile
+    container_name: content-api
+    ports:
+      - '5001:8080'
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+    depends_on:
+      content-db:
+        condition: service_healthy
+    networks: [cms-net]
+
+volumes:
+  account_pg:
+  content_pg:
