@@ -23,13 +23,17 @@ Modern ve ölçeklenebilir bir **İçerik Yönetim Sistemi (CMS)** için gelişt
 - **Repository Factory**: Uygun repository tipini context'e göre oluşturma
 - **Dependency Injection**: IoC container ile loose coupling
 
+### 🏭 Ardalist Spesfication Patern
+- **Özellik ve Önemi**: Specification patern ile her bir proje içerisindeki sorguları kendine özel bir hale getirerek mapper kullanmadan select ile sadece ihtiyacımız olan veriyi çekmemizi sağlamış olduk. 
+- **Özellik ve Önemi**: Ardalist'in özelliği sayesinde her bir model için Repository oluşturmamıza gerek kalmadı. bu da karmaşıklığı azaltarak daha temiz bir görünüm sağlamış oldu.
+
 ## 🐳 Docker ile Kurulum
 
 ### Gereksinimler
 
 - Docker Desktop
 - Docker Compose
-- .NET 9.0 SDK (geliştirme için)
+- .NET 9.0 SDK (Kodu local'de Test için)
 
 ### Hızlı Başlangıç
 
@@ -40,7 +44,7 @@ git clone https://github.com/yourusername/microservice.cms.git
 cd microservice.cms
 ```
 
-2. **Docker Compose ile servisleri başlatın:**
+2. **Docker Compose ile servisleri başlatmak için aşağıdaki kodu proje Root klasörü içerisinde çalıştırabilirsiniz.**
 
 ```bash
 docker-compose up -d
@@ -54,21 +58,22 @@ docker-compose ps
 
 ### 🗄️ Veritabanı Yapılandırması
 
-Proje, **CQRS prensibi** gereği okuma ve yazma işlemleri için ayrı veritabanı context'leri kullanır:
+Proje, **CQRS prensibi** gereği okuma ve yazma işlemleri için ayrı veritabanı context'leri kullanır: Bir çok CQRS projesi gerçekten Write ve Read olarak db'ler bölünmediği için aslında tam olarak CQRS'i kullanmamaktadır. Burada CQRS'i tam anlamı ile kullandık.
 
-#### Account Service
+- **Not**: Kaynak tüketimi çok olduğundan dolayı appsettings.json'da write ve read contextleri aynı db'ye bakmaktadır.
+#### Account Service Postgresql Portları
 
 - **Write Context**: `accountdb` (Port: 5433)
 - **Read Context**: `accountdb` (Port: 5433)
 - **API Port**: 5000
 
-#### Content Service
+#### Content Service Postgresql Portları
 
 - **Write Context**: `contentdb` (Port: 5434)
 - **Read Context**: `contentdb` (Port: 5434)
 - **API Port**: 5001
 
-### 🔧 Environment Variables
+### 🔧 Postgresql Environment Variables
 
 ```yaml
 # Account Service
@@ -90,14 +95,14 @@ ASPNETCORE_URLS: http://+:8080
 ```
 src/
 ├── Account/                          # 👤 Account Mikroservisi
-│   ├── Microservice.Account.API/    # REST API endpoints
+│   ├── Microservice.Account.API/    # REST API endpoints Web Ara yüzü
 │   ├── Microservice.Account.Application/  # CQRS handlers
 │   ├── Microservice.Account.Domain/       # Domain entities & business logic
 │   ├── Microservice.Account.EFCore/       # Data access layer
 │   ├── Microservice.Account.SharedKernel/ # Shared models
 │   └── Microservice.Account.Test/         # Unit tests
 ├── Content/                          # 📝 Content Mikroservisi
-│   ├── Microservice.Content.API/    # REST API endpoints
+│   ├── Microservice.Content.API/    # REST API endpoints Web Ara yüzü
 │   ├── Microservice.Content.Application/  # CQRS handlers
 │   ├── Microservice.Content.Domain/       # Domain entities & business logic
 │   ├── Microservice.Content.EFCore/       # Data access layer
@@ -108,7 +113,7 @@ src/
     └── docker-compose.yml           # Orchestration
 ```
 
-## 🚀 API Endpoints
+##  API Endpoints
 
 ### Account Service (Port: 5000)
 
@@ -140,18 +145,6 @@ Her mikroservis için detaylı API dokümantasyonu:
 - Docker Desktop
 - PostgreSQL (opsiyonel, Docker kullanıyorsanız gerekmez)
 
-### Lokal Geliştirme
-
-1. **Veritabanı migration'ları:**
-
-```bash
-# Content Service
-dotnet ef database update --project src/Content/Microservice.Content.EFCore --startup-project src/Content/Microservice.Content.API
-
-# Account Service
-dotnet ef database update --project src/Account/Microservice.Account.EFCore --startup-project src/Account/Microservice.Account.API
-```
-
 2. **Projeyi çalıştır:**
 
 ```bash
@@ -169,8 +162,8 @@ dotnet run
 ### CQRS Implementation
 
 ```csharp
-// Command Side (Write)
-public class AddContentCommand : IRequest<ApiResponse<bool>>
+// Command Side, Controller'den AddcontentCommand'ı çağırarak sonucunda bool bir değer döneceğini gösterir.
+public class AddContentCommand : IRequest<ApiResponse<bool>> 
 public class AddContentCommandHandler : IRequestHandler<AddContentCommand, ApiResponse<bool>>
 
 // Query Side (Read)
@@ -200,7 +193,7 @@ public interface IReadRepository<T> : IReadRepositoryBase<T> where T : class, IE
 ### Factory Pattern
 
 ```csharp
-// Context Factory
+// Context Factory 
 public class ContextFactory : IContextFactory
 {
     public DbContext CreateContext(ContextType contextType)
@@ -215,19 +208,6 @@ public class ContextFactory : IContextFactory
 }
 ```
 
-## 📊 Monitoring & Health Checks
-
-- **Health Checks**: Her servis için `/health` endpoint'i
-- **Logging**: Structured logging ile JSON format
-- **Metrics**: Performance monitoring için hazır endpoint'ler
-
-## 🔒 Güvenlik
-
-- **Input Validation**: FluentValidation ile giriş doğrulama
-- **Exception Handling**: Global exception handler
-- **API Security**: CORS yapılandırması
-- **Data Protection**: Hassas veri şifreleme
-
 ## 🚀 Deployment
 
 ### Production
@@ -241,41 +221,12 @@ docker build -t cms-content:latest ./src/Content
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
-### Kubernetes
-
-```bash
-# Helm chart deployment
-helm install cms ./helm/cms
-```
-
-## 🤝 Katkıda Bulunma
-
-1. Fork yapın
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Commit yapın (`git commit -m 'Add amazing feature'`)
-4. Push yapın (`git push origin feature/amazing-feature`)
-5. Pull Request oluşturun
-
-## 📝 Lisans
-
-Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
-
-## 📞 İletişim
-
-- **Proje Linki**: [https://github.com/yourusername/microservice.cms](https://github.com/yourusername/microservice.cms)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/microservice.cms/issues)
-
-## 🙏 Teşekkürler
-
 Bu proje aşağıdaki teknolojiler ve kütüphaneler kullanılarak geliştirilmiştir:
 
 - [.NET 9.0](https://dotnet.microsoft.com/)
 - [Entity Framework Core](https://docs.microsoft.com/en-us/ef/core/)
 - [MediatR](https://github.com/jbogard/MediatR)
 - [FluentValidation](https://fluentvalidation.net/)
+- [Ardalist](https://specification.ardalis.com/)
 - [xUnit](https://xunit.net/)
 - [Docker](https://www.docker.com/)
-
----
-
-⭐ Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!
